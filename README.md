@@ -1,4 +1,7 @@
 # FraudSentinel
+https://credit-fraud-detector-jsyhjdnslzpjchs5rn5wew.streamlit.app/
+
+---
 
 FraudSentinel is a complete end-to-end machine learning project for credit card fraud anomaly detection. It combines data loading, feature engineering, unsupervised model training, and a polished interactive dashboard built with Streamlit.
 
