@@ -6,10 +6,8 @@ Run with:  streamlit run app.py
 
 import os
 import io
-import json
 import time
 import warnings
-from pathlib import Path
 import numpy as np
 import pandas as pd
 import joblib
@@ -26,6 +24,8 @@ pd.set_option("styler.render.max_elements", 20_000_000)
 # PAGE CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
 APP_NAME = "FraudSentinel"
+APP_VERSION = "1.1"
+APP_DEPLOY_URL = "https://share.streamlit.io/Marcelooll/credit-fraud-detector/main/app.py"
 
 st.set_page_config(
     page_title=f"{APP_NAME} // Enterprise Anomaly Engine",
@@ -37,55 +37,16 @@ st.set_page_config(
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION STATE MANAGEMENT
 # ─────────────────────────────────────────────────────────────────────────────
-STATE_FILE = Path(__file__).resolve().parent / "state_storage.json"
-
-
-def load_persisted_state() -> dict:
-    if not STATE_FILE.exists():
-        return {}
-    try:
-        with STATE_FILE.open("r", encoding="utf-8") as handle:
-            data = json.load(handle)
-            return data if isinstance(data, dict) else {}
-    except Exception:
-        return {}
-
-
-def save_persisted_state(data: dict) -> None:
-    try:
-        with STATE_FILE.open("w", encoding="utf-8") as handle:
-            json.dump(data, handle, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
-
-
-def persist_current_state() -> None:
-    if not st.session_state.get("cookies_enabled", True):
-        return
-
-    state = load_persisted_state()
-    state.update({
-        "theme": st.session_state.get("theme", "Dark Cyber"),
-        "font_size": st.session_state.get("font_size", "Normal"),
-        "cookies_enabled": st.session_state.get("cookies_enabled", False),
-        "selected_lang": st.session_state.get("selected_lang", "EN"),
-        "history": st.session_state.get("history", []),
-    })
-    save_persisted_state(state)
-
-
-persisted_state = load_persisted_state()
-
 if "theme" not in st.session_state:
-    st.session_state["theme"] = persisted_state.get("theme", "Dark Cyber")
+    st.session_state["theme"] = "Dark Cyber"
 if "font_size" not in st.session_state:
-    st.session_state["font_size"] = persisted_state.get("font_size", "Normal")
+    st.session_state["font_size"] = "Normal"
 if "cookies_enabled" not in st.session_state:
-    st.session_state["cookies_enabled"] = persisted_state.get("cookies_enabled", False)
+    st.session_state["cookies_enabled"] = False
 if "history" not in st.session_state:
-    st.session_state["history"] = persisted_state.get("history", [])
+    st.session_state["history"] = []
 if "selected_lang" not in st.session_state:
-    st.session_state["selected_lang"] = persisted_state.get("selected_lang", "EN")
+    st.session_state["selected_lang"] = "EN"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONSTANTS & MODEL PATHS
@@ -227,7 +188,7 @@ LANG_TEXTS = {
         "cookies_active": "Status: Cookies/Sessão Ativos",
         "cookies_inactive": "Status: Sessão Anônima",
         "sidebar_title": "FraudSentinel",
-        "sidebar_tag": "ENTERPRISE // v1.0",
+        "sidebar_tag": "ENTERPRISE // v1.1",
         "analytics_title": "Painel de Análise Gráfica Avançada",
         "overview_tab": "Distribuição Geral",
         "temporal_tab": "Padrões Temporais",
@@ -325,7 +286,7 @@ LANG_TEXTS = {
         "cookies_active": "Status: Cookies/Session Active",
         "cookies_inactive": "Status: Anonymous Session",
         "sidebar_title": "FraudSentinel",
-        "sidebar_tag": "ENTERPRISE // v1.0",
+        "sidebar_tag": "ENTERPRISE // v1.1",
         "analytics_title": "Advanced Graph Analysis Panel",
         "overview_tab": "Overall Distribution",
         "temporal_tab": "Temporal Patterns",
@@ -377,7 +338,7 @@ LANG_TEXTS = {
         "cookies_active": "Estado: cookies/sesión activos",
         "cookies_inactive": "Estado: sesión anónima",
         "sidebar_title": "FraudSentinel",
-        "sidebar_tag": "ENTERPRISE // v1.0",
+        "sidebar_tag": "ENTERPRISE // v1.1",
         "analytics_title": "Panel de análisis gráfico avanzado",
         "overview_tab": "Distribución general",
         "temporal_tab": "Patrones temporales",
@@ -429,7 +390,7 @@ LANG_TEXTS = {
         "cookies_active": "Statut: cookies/session actifs",
         "cookies_inactive": "Statut: session anonyme",
         "sidebar_title": "FraudSentinel",
-        "sidebar_tag": "ENTERPRISE // v1.0",
+        "sidebar_tag": "ENTERPRISE // v1.1",
         "analytics_title": "Panneau d’analyse graphique avancée",
         "overview_tab": "Distribution générale",
         "temporal_tab": "Motifs temporels",
@@ -481,7 +442,7 @@ LANG_TEXTS = {
         "cookies_active": "Status: Cookies/Sitzung aktiv",
         "cookies_inactive": "Status: anonyme Sitzung",
         "sidebar_title": "FraudSentinel",
-        "sidebar_tag": "ENTERPRISE // v1.0",
+        "sidebar_tag": "ENTERPRISE // v1.1",
         "analytics_title": "Erweiterte grafische Analyse",
         "overview_tab": "Gesamtverteilung",
         "temporal_tab": "Zeitmuster",
@@ -533,7 +494,7 @@ LANG_TEXTS = {
         "cookies_active": "状态：Cookie/会话已启用",
         "cookies_inactive": "状态：匿名会话",
         "sidebar_title": "FraudSentinel",
-        "sidebar_tag": "ENTERPRISE // v1.0",
+        "sidebar_tag": "ENTERPRISE // v1.1",
         "analytics_title": "高级图形分析面板",
         "overview_tab": "总体分布",
         "temporal_tab": "时间模式",
@@ -926,12 +887,10 @@ def generate_sample_csv() -> bytes:
 # ─────────────────────────────────────────────────────────────────────────────
 def on_theme_change():
     st.session_state["theme"] = st.session_state["theme_radio_input"]
-    persist_current_state()
 
 
 def on_font_change():
     st.session_state["font_size"] = st.session_state["font_select_input"]
-    persist_current_state()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR CONTROL PANEL (ZERO EMOJIS)
@@ -965,7 +924,6 @@ with st.sidebar:
         )
         if "selected_lang" not in st.session_state or st.session_state["selected_lang"] != lang_value:
             st.session_state["selected_lang"] = lang_value
-            persist_current_state()
 
         st.radio(
             get_text("theme_label", "Color Theme"),
@@ -988,7 +946,6 @@ with st.sidebar:
             get_text("cookies_label", "Keep Session / Cookies"),
             value=st.session_state.get("cookies_enabled", False)
         )
-        persist_current_state()
 
         if st.session_state["cookies_enabled"]:
             st.caption(get_text("cookies_active", "Status: Cookies/Session Active"))
@@ -1021,7 +978,6 @@ with st.sidebar:
         c2.metric(t['flagged'], frauds)
         if st.button(t['clear_telemetry'], use_container_width=True):
             st.session_state["history"] = []
-            persist_current_state()
             st.rerun()
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1173,7 +1129,6 @@ with tab1:
                 "risk_pct":  round(risk_pct, 1),
             }
         )
-        persist_current_state()
 
     if st.session_state["history"]:
         st.markdown("---")

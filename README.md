@@ -4,13 +4,26 @@ FraudSentinel is a complete end-to-end machine learning project for credit card 
 
 This project is designed to be both a strong portfolio piece and a practical example of how to build an anomaly detection system that can be explained to recruiters, managers, or technical interviewers.
 
-Version 1.0 includes a multilingual Streamlit interface, live transaction simulation, batch CSV analysis, explanatory diagnostics, and session persistence controls.
+Version 1.1 includes a multilingual Streamlit interface, live transaction simulation, batch CSV analysis, explanatory diagnostics, and deployment-ready compatibility for Streamlit Cloud.
 
 If you find a bug, have a suggestion, or want a feature added, please open an issue or contact the maintainer.
 
 ---
 
-## 1. Project Overview
+## 1. Streamlit Cloud Deployment
+
+This project is ready to be deployed on Streamlit Cloud with the standard structure:
+
+- root entrypoint: app.py
+- dependencies: requirements.txt
+- Python runtime: runtime.txt
+- Streamlit config: .streamlit/config.toml
+
+Use this deployment URL after publishing the repository:
+
+https://share.streamlit.io/Marcelooll/credit-fraud-detector/main/app.py
+
+## 2. Project Overview
 
 FraudSentinel uses an Isolation Forest model to detect suspicious transactions without requiring labeled fraud examples during training. The system is trained on a real-world credit card fraud dataset and exposes its results through a web app that supports:
 
