@@ -35,6 +35,8 @@ dist/
 # Streamlit / local app state
 state_storage.json
 .streamlit/
+!.streamlit/
+!.streamlit/config.toml
 
 # Jupyter
 .ipynb_checkpoints/
