@@ -4,6 +4,10 @@ FraudSentinel is a complete end-to-end machine learning project for credit card 
 
 This project is designed to be both a strong portfolio piece and a practical example of how to build an anomaly detection system that can be explained to recruiters, managers, or technical interviewers.
 
+Version 1.0 includes a multilingual Streamlit interface, live transaction simulation, batch CSV analysis, explanatory diagnostics, and session persistence controls.
+
+If you find a bug, have a suggestion, or want a feature added, please open an issue or contact the maintainer.
+
 ---
 
 ## 1. Project Overview

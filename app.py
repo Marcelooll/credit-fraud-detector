@@ -1,13 +1,15 @@
 """
-app.py - Neural Fraud Sentinel — Modern Enterprise Anomaly Engine
-=======================================================================
+app.py - FraudSentinel — Enterprise Anomaly Engine
+===================================================
 Run with:  streamlit run app.py
 """
 
 import os
 import io
+import json
 import time
 import warnings
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import joblib
@@ -23,8 +25,10 @@ pd.set_option("styler.render.max_elements", 20_000_000)
 # ─────────────────────────────────────────────────────────────────────────────
 # PAGE CONFIG
 # ─────────────────────────────────────────────────────────────────────────────
+APP_NAME = "FraudSentinel"
+
 st.set_page_config(
-    page_title="NEURAL FRAUD SENTINEL // Enterprise Anomaly Engine",
+    page_title=f"{APP_NAME} // Enterprise Anomaly Engine",
     page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
@@ -33,14 +37,55 @@ st.set_page_config(
 # ─────────────────────────────────────────────────────────────────────────────
 # SESSION STATE MANAGEMENT
 # ─────────────────────────────────────────────────────────────────────────────
+STATE_FILE = Path(__file__).resolve().parent / "state_storage.json"
+
+
+def load_persisted_state() -> dict:
+    if not STATE_FILE.exists():
+        return {}
+    try:
+        with STATE_FILE.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+            return data if isinstance(data, dict) else {}
+    except Exception:
+        return {}
+
+
+def save_persisted_state(data: dict) -> None:
+    try:
+        with STATE_FILE.open("w", encoding="utf-8") as handle:
+            json.dump(data, handle, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+
+def persist_current_state() -> None:
+    if not st.session_state.get("cookies_enabled", True):
+        return
+
+    state = load_persisted_state()
+    state.update({
+        "theme": st.session_state.get("theme", "Dark Cyber"),
+        "font_size": st.session_state.get("font_size", "Normal"),
+        "cookies_enabled": st.session_state.get("cookies_enabled", False),
+        "selected_lang": st.session_state.get("selected_lang", "EN"),
+        "history": st.session_state.get("history", []),
+    })
+    save_persisted_state(state)
+
+
+persisted_state = load_persisted_state()
+
 if "theme" not in st.session_state:
-    st.session_state["theme"] = "Dark Cyber"
+    st.session_state["theme"] = persisted_state.get("theme", "Dark Cyber")
 if "font_size" not in st.session_state:
-    st.session_state["font_size"] = "Normal"
+    st.session_state["font_size"] = persisted_state.get("font_size", "Normal")
 if "cookies_enabled" not in st.session_state:
-    st.session_state["cookies_enabled"] = True
+    st.session_state["cookies_enabled"] = persisted_state.get("cookies_enabled", False)
 if "history" not in st.session_state:
-    st.session_state["history"] = []
+    st.session_state["history"] = persisted_state.get("history", [])
+if "selected_lang" not in st.session_state:
+    st.session_state["selected_lang"] = persisted_state.get("selected_lang", "EN")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CONSTANTS & MODEL PATHS
@@ -119,7 +164,7 @@ selected_font_scale = FONT_SCALES.get(st.session_state["font_size"], "1.0rem")
 # ─────────────────────────────────────────────────────────────────────────────
 LANG_TEXTS = {
     "PT": {
-        "title": "NEURAL FRAUD SENTINEL",
+        "title": "FraudSentinel",
         "subtitle": "Detector de Anomalias em Cartões de Crédito por Machine Learning Não Supervisionado",
         "status_ready": "MOTOR ISOLATION FOREST: OPERACIONAL",
         "status_offline": "Modelo Offline. Execute python train.py",
@@ -147,7 +192,7 @@ LANG_TEXTS = {
         "city_pop": "População da Cidade",
         "merch_lat": "Latitude do Estabelecimento",
         "merch_long": "Longitude do Estabelecimento",
-        "btn_run": "EXECUTAR DIAGNÓSTICO NEURAL",
+        "btn_run": "EXECUTAR DIAGNÓSTICO",
         "verdict_fraud_title": "ANOMALIA DETECTADA // RISCO ELEVADO",
         "verdict_fraud_desc": "O comprimento de isolamento da árvore colapsou. Transação sinalizada como anômala/suspeita.",
         "verdict_safe_title": "TRANSAÇÃO VERIFICADA // COMPORTAMENTO NOMINAL",
@@ -174,6 +219,41 @@ LANG_TEXTS = {
         "theory_desc": "Ao contrário de classificadores supervisionados, a Isolation Forest isola anomalias particionando o espaço de atributos aleatoriamente.",
         "btn_monte_carlo": "Gerar e Avaliar 50 Transmissões Aleatórias",
         "days": ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+        "lang_label": "Idioma",
+        "sys_config": "Configuração do Sistema",
+        "theme_label": "Tema de Cores",
+        "font_label": "Tamanho da Fonte",
+        "cookies_label": "Manter Sessão / Cookies",
+        "cookies_active": "Status: Cookies/Sessão Ativos",
+        "cookies_inactive": "Status: Sessão Anônima",
+        "sidebar_title": "FraudSentinel",
+        "sidebar_tag": "ENTERPRISE // v1.0",
+        "analytics_title": "Painel de Análise Gráfica Avançada",
+        "overview_tab": "Distribuição Geral",
+        "temporal_tab": "Padrões Temporais",
+        "scatter_tab": "Relação Valor x Risco",
+        "geography_tab": "Geografia & Demografia",
+        "hour_title": "Transações por Hora do Dia (0-23h)",
+        "day_title": "Transações por Dia da Semana (0=Seg, 6=Dom)",
+        "scatter_title": "Dispersão: Valor da Transação ($) vs Pontuação de Risco (%)",
+        "pop_title": "Distribuição de População da Cidade por Status",
+        "age_title": "Distribuição por Faixa Etária do Titular",
+        "model_spec_title": "Parâmetros e Arquitetura do Motor",
+        "monte_carlo_title": "Visualizador Monte Carlo",
+        "monte_carlo_scatter_title": "Distribuição: Valor x Pontuação de Risco",
+        "chart_amount_label": "Valor da Transação ($)",
+        "chart_risk_label": "Percentual de Risco (%)",
+        "about_title": "Pipeline de Machine Learning de ponta para detecção de fraude em cartão de crédito.",
+        "about_intro": "Pipeline de machine learning de ponta para detecção de fraude em cartão de crédito em tempo real.",
+        "about_stack_title": "Stack Tecnológico Principal",
+        "about_ml_core": "Núcleo de ML",
+        "about_data_eng": "Engenharia de Dados",
+        "about_dashboard": "Painel",
+        "about_dataset": "Dataset",
+        "sim_tabs_diagnostics": "Diagnósticos",
+        "sim_tabs_radar": "Perfil Radar",
+        "radar_title": "Gráfico de Radar: Atributos da Transação vs Linha de Base Padrão",
+        "radar_feature_labels": ["Valor", "Hora", "Idade", "Distância Geo", "Densidade Pop"],
         "reason_val": "Pico de Valor: ${val:.2f} excede a linha de base habitual.",
         "reason_time": "Horário Incomum: Registrada às {h}:00 AM.",
         "reason_pop": "Densidade Baixa: População da cidade ({pop:,}) diverge da média.",
@@ -182,7 +262,7 @@ LANG_TEXTS = {
         "reason_ok": "Telemetria Nominal: Todos os parâmetros estão em conformidade."
     },
     "EN": {
-        "title": "NEURAL FRAUD SENTINEL",
+        "title": "FraudSentinel",
         "subtitle": "Real-Time Unsupervised Machine Learning Credit Card Anomaly Detector",
         "status_ready": "ISOLATION FOREST ENGINE: OPERATIONAL",
         "status_offline": "Model Offline. Run python train.py",
@@ -194,10 +274,10 @@ LANG_TEXTS = {
         "clear_telemetry": "Clear Audit Log",
         "tab_simulate": "LIVE SIMULATION",
         "tab_batch": "BATCH PROCESSOR",
-        "tab_insights": "NEURAL INSIGHTS",
+        "tab_insights": "INSIGHTS",
         "tab_about": "ARCHITECTURE",
         "sim_title": "Real-Time Telemetry Simulator",
-        "sim_desc": "Inject transaction telemetry into the neural engine to evaluate anomaly probability in real time.",
+        "sim_desc": "Inject transaction telemetry into the anomaly engine to evaluate fraud probability in real time.",
         "payload_details": "Transaction Telemetry",
         "node_coords": "Cardholder Node Coordinates",
         "merchant_target": "Merchant Target Coordinates",
@@ -210,13 +290,13 @@ LANG_TEXTS = {
         "city_pop": "City Population",
         "merch_lat": "Merchant Latitude",
         "merch_long": "Merchant Longitude",
-        "btn_run": "RUN NEURAL DIAGNOSTIC",
-        "verdict_fraud_title": "ANOMALY DETECTED // HIGH RISK PAYLOAD",
+        "btn_run": "RUN DIAGNOSTIC",
+        "verdict_fraud_title": "ANOMALY DETECTED // HIGH RISK",
         "verdict_fraud_desc": "Isolation tree path length collapsed. Payload flagged as anomalous/fraudulent.",
         "verdict_safe_title": "TRANSACTION VERIFIED // NOMINAL BEHAVIOR",
         "verdict_safe_desc": "Telemetry aligns with standard legitimate baseline clusters.",
         "raw_score": "Raw Score",
-        "diagnostics": "Neural System Diagnostics",
+        "diagnostics": "System Diagnostics",
         "session_log": "Session Audit Log",
         "batch_title": "Massive Batch Processing",
         "batch_desc": "Upload CSV files of any scale (including datasets with 1.3M+ records).",
@@ -237,17 +317,262 @@ LANG_TEXTS = {
         "theory_desc": "Unlike supervised classifiers, Isolation Forest isolates anomalies by randomly partitioning feature space.",
         "btn_monte_carlo": "Generate & Score 50 Random Transmissions",
         "days": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "lang_label": "Language",
+        "sys_config": "System Configuration",
+        "theme_label": "Color Theme",
+        "font_label": "Font Size",
+        "cookies_label": "Keep Session / Cookies",
+        "cookies_active": "Status: Cookies/Session Active",
+        "cookies_inactive": "Status: Anonymous Session",
+        "sidebar_title": "FraudSentinel",
+        "sidebar_tag": "ENTERPRISE // v1.0",
+        "analytics_title": "Advanced Graph Analysis Panel",
+        "overview_tab": "Overall Distribution",
+        "temporal_tab": "Temporal Patterns",
+        "scatter_tab": "Value vs Risk Relationship",
+        "geography_tab": "Geography & Demographics",
+        "hour_title": "Transactions by Hour of Day (0-23h)",
+        "day_title": "Transactions by Day of Week (0=Mon, 6=Sun)",
+        "scatter_title": "Scatter: Transaction Value ($) vs Risk Score (%)",
+        "pop_title": "City Population Distribution by Status",
+        "age_title": "Distribution by Cardholder Age Range",
+        "model_spec_title": "Model Parameters & Engine Architecture",
+        "monte_carlo_title": "Monte Carlo Visualizer",
+        "monte_carlo_scatter_title": "Amount vs Risk Score Distribution",
+        "chart_amount_label": "Transaction Amount ($)",
+        "chart_risk_label": "Risk Percentage (%)",
+        "about_title": "FraudSentinel Enterprise",
+        "about_intro": "Cutting-edge machine learning pipeline for real-time credit card fraud detection.",
+        "about_stack_title": "Core Technology Stack",
+        "about_ml_core": "ML Core",
+        "about_data_eng": "Data Engineering",
+        "about_dashboard": "Dashboard",
+        "about_dataset": "Dataset",
+        "sim_tabs_diagnostics": "Diagnostics",
+        "sim_tabs_radar": "Radar Profile",
+        "radar_title": "Radar Chart: Transaction Attributes vs Standard Baseline",
+        "radar_feature_labels": ["Value", "Hour", "Age", "Geo Distance", "Population Density"],
         "reason_val": "Value Spike: ${val:.2f} exceeds standard consumer baseline.",
         "reason_time": "Unusual Time Window: Registered at {h}:00 AM.",
         "reason_pop": "Low Node Density: City population ({pop:,}) diverges from average.",
         "reason_geo": "Geographic Anomaly: High distance delta between cardholder and merchant.",
         "reason_weekend": "Weekend Window: Registered during weekend.",
         "reason_ok": "Nominal Telemetry: All parameters align with standard profile."
+    },
+    "ES": {
+        "title": "FraudSentinel",
+        "subtitle": "Detector de anomalías en tarjetas de crédito con machine learning no supervisado",
+        "status_ready": "MOTOR ISOLATION FOREST: OPERATIVO",
+        "status_offline": "Modelo offline. Ejecuta python train.py",
+        "tab_simulate": "SIMULACIÓN EN VIVO",
+        "tab_batch": "PROCESADOR EN LOTE",
+        "tab_insights": "INSIGHTS",
+        "tab_about": "ARQUITECTURA",
+        "btn_run": "EJECUTAR DIAGNÓSTICO",
+        "lang_label": "Idioma",
+        "sys_config": "Configuración del sistema",
+        "theme_label": "Tema de colores",
+        "font_label": "Tamaño de fuente",
+        "cookies_label": "Mantener sesión / cookies",
+        "cookies_active": "Estado: cookies/sesión activos",
+        "cookies_inactive": "Estado: sesión anónima",
+        "sidebar_title": "FraudSentinel",
+        "sidebar_tag": "ENTERPRISE // v1.0",
+        "analytics_title": "Panel de análisis gráfico avanzado",
+        "overview_tab": "Distribución general",
+        "temporal_tab": "Patrones temporales",
+        "scatter_tab": "Relación valor vs riesgo",
+        "geography_tab": "Geografía y demografía",
+        "hour_title": "Transacciones por hora del día (0-23h)",
+        "day_title": "Transacciones por día de la semana (0=Lun, 6=Dom)",
+        "scatter_title": "Dispersión: valor de la transacción ($) vs puntuación de riesgo (%)",
+        "pop_title": "Distribución de población de la ciudad por estado",
+        "age_title": "Distribución por rango de edad del titular",
+        "model_spec_title": "Parámetros del modelo y arquitectura del motor",
+        "monte_carlo_title": "Visualizador Monte Carlo",
+        "monte_carlo_scatter_title": "Distribución: valor frente a puntuación de riesgo",
+        "chart_amount_label": "Valor de la transacción ($)",
+        "chart_risk_label": "Porcentaje de riesgo (%)",
+        "about_title": "FraudSentinel Enterprise",
+        "about_intro": "Pipeline de machine learning de vanguardia para la detección de fraude en tarjetas de crédito en tiempo real.",
+        "about_stack_title": "Stack tecnológico principal",
+        "about_ml_core": "Núcleo de ML",
+        "about_data_eng": "Ingeniería de datos",
+        "about_dashboard": "Panel",
+        "about_dataset": "Conjunto de datos",
+        "sim_tabs_diagnostics": "Diagnósticos",
+        "sim_tabs_radar": "Perfil radar",
+        "radar_title": "Gráfico radar: atributos de la transacción frente a la línea base estándar",
+        "radar_feature_labels": ["Valor", "Hora", "Edad", "Distancia geográfica", "Densidad poblacional"],
+        "reason_val": "Pico de valor: ${val:.2f} supera la línea base habitual.",
+        "reason_time": "Ventana poco habitual: registrada a las {h}:00 AM.",
+        "reason_pop": "Baja densidad de nodo: la población de la ciudad ({pop:,}) diverge de la media.",
+        "reason_geo": "Anomalía geográfica: gran diferencia de distancia entre titular y comercio.",
+        "reason_weekend": "Ventana de fin de semana: registrada durante el fin de semana.",
+        "reason_ok": "Telemetría nominal: todos los parámetros están alineados con el perfil estándar."
+    },
+    "FR": {
+        "title": "FraudSentinel",
+        "subtitle": "Détection d’anomalies pour cartes de crédit avec machine learning non supervisé",
+        "status_ready": "MOTEUR ISOLATION FOREST: OPÉRATIONNEL",
+        "status_offline": "Modèle hors ligne. Exécutez python train.py",
+        "tab_simulate": "SIMULATION EN DIRECT",
+        "tab_batch": "TRAITEMENT PAR LOT",
+        "tab_insights": "INSIGHTS",
+        "tab_about": "ARCHITECTURE",
+        "btn_run": "LANCER LE DIAGNOSTIC",
+        "lang_label": "Langue",
+        "sys_config": "Configuration du système",
+        "theme_label": "Thème de couleurs",
+        "font_label": "Taille de police",
+        "cookies_label": "Conserver la session / cookies",
+        "cookies_active": "Statut: cookies/session actifs",
+        "cookies_inactive": "Statut: session anonyme",
+        "sidebar_title": "FraudSentinel",
+        "sidebar_tag": "ENTERPRISE // v1.0",
+        "analytics_title": "Panneau d’analyse graphique avancée",
+        "overview_tab": "Distribution générale",
+        "temporal_tab": "Motifs temporels",
+        "scatter_tab": "Relation valeur vs risque",
+        "geography_tab": "Géographie et démographie",
+        "hour_title": "Transactions par heure de la journée (0-23h)",
+        "day_title": "Transactions par jour de la semaine (0=Lun, 6=Dim)",
+        "scatter_title": "Dispersion: valeur de transaction ($) vs score de risque (%)",
+        "pop_title": "Distribution de la population de la ville par statut",
+        "age_title": "Distribution par tranche d’âge du titulaire",
+        "model_spec_title": "Paramètres du modèle et architecture du moteur",
+        "monte_carlo_title": "Visualiseur Monte Carlo",
+        "monte_carlo_scatter_title": "Distribution: valeur vs score de risque",
+        "chart_amount_label": "Montant de la transaction ($)",
+        "chart_risk_label": "Pourcentage de risque (%)",
+        "about_title": "FraudSentinel Enterprise",
+        "about_intro": "Pipeline de machine learning de pointe pour la détection de fraude par carte de crédit en temps réel.",
+        "about_stack_title": "Pile technologique principale",
+        "about_ml_core": "Noyau ML",
+        "about_data_eng": "Ingénierie des données",
+        "about_dashboard": "Tableau de bord",
+        "about_dataset": "Jeu de données",
+        "sim_tabs_diagnostics": "Diagnostics",
+        "sim_tabs_radar": "Profil radar",
+        "radar_title": "Graphique radar: attributs de transaction vs ligne de base standard",
+        "radar_feature_labels": ["Valeur", "Heure", "Âge", "Distance géographique", "Densité de population"],
+        "reason_val": "Pic de valeur: ${val:.2f} dépasse la ligne de base habituelle.",
+        "reason_time": "Fenêtre inhabituel: enregistrée à {h}:00 AM.",
+        "reason_pop": "Faible densité de nœud: la population de la ville ({pop:,}) diverge de la moyenne.",
+        "reason_geo": "Anomalie géographique: grande différence de distance entre titulaire et commerçant.",
+        "reason_weekend": "Fenêtre de week-end: enregistrée pendant le week-end.",
+        "reason_ok": "Télémétrie nominale: tous les paramètres sont alignés sur le profil standard."
+    },
+    "DE": {
+        "title": "FraudSentinel",
+        "subtitle": "Erkennung von Anomalien bei Kreditkarten mit unüberwachtem Machine Learning",
+        "status_ready": "ISOLATION-FOREST-MOTOR: BETRIEBSBEREIT",
+        "status_offline": "Modell offline. Führen Sie python train.py aus",
+        "tab_simulate": "LIVE-SIMULATION",
+        "tab_batch": "BATCH-VERARBEITUNG",
+        "tab_insights": "INSIGHTS",
+        "tab_about": "ARCHITEKTUR",
+        "btn_run": "DIAGNOSE STARTEN",
+        "lang_label": "Sprache",
+        "sys_config": "Systemkonfiguration",
+        "theme_label": "Farbschema",
+        "font_label": "Schriftgröße",
+        "cookies_label": "Sitzung / Cookies behalten",
+        "cookies_active": "Status: Cookies/Sitzung aktiv",
+        "cookies_inactive": "Status: anonyme Sitzung",
+        "sidebar_title": "FraudSentinel",
+        "sidebar_tag": "ENTERPRISE // v1.0",
+        "analytics_title": "Erweiterte grafische Analyse",
+        "overview_tab": "Gesamtverteilung",
+        "temporal_tab": "Zeitmuster",
+        "scatter_tab": "Wert vs Risiko",
+        "geography_tab": "Geografie & Demografie",
+        "hour_title": "Transaktionen nach Uhrzeit (0-23h)",
+        "day_title": "Transaktionen nach Wochentag (0=Mo, 6=So)",
+        "scatter_title": "Streuung: Transaktionswert ($) vs Risikowert (%)",
+        "pop_title": "Verteilung der Stadtbevölkerung nach Status",
+        "age_title": "Verteilung nach Altersgruppe des Karteninhabers",
+        "model_spec_title": "Modellparameter und Motorarchitektur",
+        "monte_carlo_title": "Monte-Carlo-Visualisierer",
+        "monte_carlo_scatter_title": "Verteilung: Wert vs Risikowert",
+        "chart_amount_label": "Transaktionsbetrag ($)",
+        "chart_risk_label": "Risikoprozentsatz (%)",
+        "about_title": "FraudSentinel Enterprise",
+        "about_intro": "Modernes Machine-Learning-Framework zur Echtzeit-Erkennung von Kreditkartenbetrug.",
+        "about_stack_title": "Kerntechnologie-Stack",
+        "about_ml_core": "ML-Kern",
+        "about_data_eng": "Datenengineering",
+        "about_dashboard": "Dashboard",
+        "about_dataset": "Datensatz",
+        "sim_tabs_diagnostics": "Diagnosen",
+        "sim_tabs_radar": "Radarprofil",
+        "radar_title": "Radardiagramm: Transaktionsattribute vs Standard-Baseline",
+        "radar_feature_labels": ["Wert", "Uhrzeit", "Alter", "Geo-Abstand", "Bevölkerungsdichte"],
+        "reason_val": "Wertspitze: ${val:.2f} übersteigt die übliche Basislinie.",
+        "reason_time": "Ungewöhnliches Zeitfenster: registriert um {h}:00 Uhr.",
+        "reason_pop": "Geringe Knotendichte: Stadtbevölkerung ({pop:,}) weicht vom Durchschnitt ab.",
+        "reason_geo": "Geografische Anomalie: große Distanzdifferenz zwischen Karteninhaber und Händler.",
+        "reason_weekend": "Wochenendfenster: während des Wochenendes registriert.",
+        "reason_ok": "Nometrische Telemetrie: alle Parameter stimmen mit dem Standardprofil überein."
+    },
+    "ZH": {
+        "title": "FraudSentinel",
+        "subtitle": "信用卡欺诈异常检测的无监督机器学习系统",
+        "status_ready": "ISOLATION FOREST 引擎: 已就绪",
+        "status_offline": "模型离线。请运行 python train.py",
+        "tab_simulate": "实时模拟",
+        "tab_batch": "批量处理",
+        "tab_insights": "洞察",
+        "tab_about": "架构",
+        "btn_run": "执行诊断",
+        "lang_label": "语言",
+        "sys_config": "系统配置",
+        "theme_label": "颜色主题",
+        "font_label": "字体大小",
+        "cookies_label": "保留会话 / Cookie",
+        "cookies_active": "状态：Cookie/会话已启用",
+        "cookies_inactive": "状态：匿名会话",
+        "sidebar_title": "FraudSentinel",
+        "sidebar_tag": "ENTERPRISE // v1.0",
+        "analytics_title": "高级图形分析面板",
+        "overview_tab": "总体分布",
+        "temporal_tab": "时间模式",
+        "scatter_tab": "数值与风险关系",
+        "geography_tab": "地理与人口统计",
+        "hour_title": "按小时统计的交易（0-23h）",
+        "day_title": "按星期统计的交易（0=周一，6=周日）",
+        "scatter_title": "散点图：交易金额 ($) 与风险分数 (%)",
+        "pop_title": "按状态分类的城市人口分布",
+        "age_title": "按持卡人年龄段的分布",
+        "model_spec_title": "模型参数与引擎架构",
+        "monte_carlo_title": "蒙特卡洛可视化器",
+        "monte_carlo_scatter_title": "分布：金额与风险分数",
+        "chart_amount_label": "交易金额 ($)",
+        "chart_risk_label": "风险百分比 (%)",
+        "about_title": "FraudSentinel Enterprise",
+        "about_intro": "用于实时信用卡欺诈检测的前沿机器学习管道。",
+        "about_stack_title": "核心技术栈",
+        "about_ml_core": "机器学习核心",
+        "about_data_eng": "数据工程",
+        "about_dashboard": "仪表板",
+        "about_dataset": "数据集",
+        "sim_tabs_diagnostics": "诊断",
+        "sim_tabs_radar": "雷达概况",
+        "radar_title": "雷达图：交易属性与标准基线",
+        "radar_feature_labels": ["数值", "时间", "年龄", "地理距离", "人口密度"],
+        "reason_val": "数值峰值：${val:.2f} 超过常见基线。",
+        "reason_time": "异常时间窗口：记录于 {h}:00 AM。",
+        "reason_pop": "节点密度偏低：城市人口 ({pop:,}) 与平均值偏离。",
+        "reason_geo": "地理异常：持卡人和商户之间的距离差异较大。",
+        "reason_weekend": "周末窗口：在周末记录。",
+        "reason_ok": "标称遥测：所有参数都与标准配置一致。"
     }
 }
+
 for lang_code in ["ES", "FR", "DE", "ZH"]:
-    if lang_code not in LANG_TEXTS:
-        LANG_TEXTS[lang_code] = LANG_TEXTS["EN"]
+    if lang_code in LANG_TEXTS:
+        continue
+    LANG_TEXTS[lang_code] = LANG_TEXTS["EN"]
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ZERO-EMOJI DYNAMIC STYLESHEET (PERFECT LIGHT & DARK MODE CONTRAST)
@@ -257,10 +582,10 @@ st.markdown(
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;600&display=swap');
 
-/* HIDE STREAMLIT DEFAULT HEADER TOOLBAR */
-header[data-testid="stHeader"] {{ visibility: hidden !important; height: 0px !important; }}
-div[data-testid="stToolbar"] {{ visibility: hidden !important; display: none !important; }}
-footer {{ visibility: hidden !important; }}
+/* STREAMLIT HEADER/TOOLBAR */
+header[data-testid="stHeader"] {{ visibility: visible !important; }}
+div[data-testid="stToolbar"] {{ visibility: visible !important; display: flex !important; }}
+footer {{ visibility: visible !important; }}
 
 /* Root Styling */
 html, body, [data-testid="stAppViewContainer"], .stApp {{
@@ -469,8 +794,14 @@ def score_gauge(risk_pct: float) -> go.Figure:
     return fig
 
 
-def create_radar_chart(values: dict) -> go.Figure:
-    categories = ['Valor (Norm)', 'Hora (Norm)', 'Distância Geo', 'Idade (Norm)', 'Densidade Pop']
+def create_radar_chart(values: dict, t: dict) -> go.Figure:
+    categories = [
+        t.get('radar_category_value', 'Value (Norm)'),
+        t.get('radar_category_hour', 'Hour (Norm)'),
+        t.get('radar_category_geo', 'Geo Distance'),
+        t.get('radar_category_age', 'Age (Norm)'),
+        t.get('radar_category_pop', 'Population Density'),
+    ]
     
     dist_geo = min(abs(values.get('lat', 0) - values.get('merch_lat', 0)) * 25, 100)
     norm_amt = min((values.get('amt', 0) / 1000) * 100, 100)
@@ -487,7 +818,7 @@ def create_radar_chart(values: dict) -> go.Figure:
         r=baseline_vector,
         theta=categories,
         fill='toself',
-        name='Baseline Segura',
+        name=t.get('radar_baseline', 'Baseline Safe'),
         line_color=current_theme['accent_green'],
         fillcolor='rgba(22, 163, 74, 0.15)'
     ))
@@ -496,7 +827,7 @@ def create_radar_chart(values: dict) -> go.Figure:
         r=val_vector,
         theta=categories,
         fill='toself',
-        name='Transação Atual',
+        name=t.get('radar_current', 'Current Transaction'),
         line_color=current_theme['accent_primary'],
         fillcolor='rgba(2, 132, 199, 0.25)'
     ))
@@ -595,21 +926,32 @@ def generate_sample_csv() -> bytes:
 # ─────────────────────────────────────────────────────────────────────────────
 def on_theme_change():
     st.session_state["theme"] = st.session_state["theme_radio_input"]
+    persist_current_state()
+
 
 def on_font_change():
     st.session_state["font_size"] = st.session_state["font_select_input"]
+    persist_current_state()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR CONTROL PANEL (ZERO EMOJIS)
 # ─────────────────────────────────────────────────────────────────────────────
+selected_lang = st.session_state.get("selected_lang", "EN")
+base_texts = LANG_TEXTS.get(selected_lang, LANG_TEXTS["EN"])
+
+def get_text(key: str, fallback: str = "") -> str:
+    return base_texts.get(key, LANG_TEXTS["EN"].get(key, fallback))
+
+t = {**LANG_TEXTS["EN"], **base_texts}
+
 with st.sidebar:
-    st.markdown("<h2 style='font-family:Orbitron; color:" + current_theme['accent_primary'] + "; margin-bottom:0;'>NEURAL SENTINEL</h2>", unsafe_allow_html=True)
-    st.markdown("<span class='cyber-tag tag-cyan'>ENTERPRISE // v4.0</span>", unsafe_allow_html=True)
+    st.markdown("<h2 style='font-family:Orbitron; color:" + current_theme['accent_primary'] + "; margin-bottom:0;'>" + get_text("sidebar_title", APP_NAME) + "</h2>", unsafe_allow_html=True)
+    st.markdown("<span class='cyber-tag tag-cyan'>" + get_text("sidebar_tag", "ENTERPRISE // v4.0") + "</span>", unsafe_allow_html=True)
     st.markdown("---")
 
-    with st.expander("[SYS_CONFIG]", expanded=True):
-        selected_lang = st.selectbox(
-            "Idioma / Language",
+    with st.expander(get_text("sys_config", "System Configuration"), expanded=True):
+        lang_value = st.selectbox(
+            get_text("lang_label", "Language"),
             options=["PT", "EN", "ES", "FR", "DE", "ZH"],
             format_func=lambda x: {
                 "PT": "Português (PT)",
@@ -619,11 +961,14 @@ with st.sidebar:
                 "DE": "Deutsch (DE)",
                 "ZH": "中文 (ZH)"
             }[x],
-            key="selected_lang"
+            key="lang_selector"
         )
+        if "selected_lang" not in st.session_state or st.session_state["selected_lang"] != lang_value:
+            st.session_state["selected_lang"] = lang_value
+            persist_current_state()
 
         st.radio(
-            "Tema de Cores",
+            get_text("theme_label", "Color Theme"),
             options=["Dark Cyber", "Red Crimson", "Light Neon"],
             index=["Dark Cyber", "Red Crimson", "Light Neon"].index(st.session_state["theme"]),
             key="theme_radio_input",
@@ -632,7 +977,7 @@ with st.sidebar:
         )
 
         st.select_slider(
-            "Tamanho da Fonte",
+            get_text("font_label", "Font Size"),
             options=["Normal", "Grande", "Extragrande"],
             value=st.session_state["font_size"],
             key="font_select_input",
@@ -640,27 +985,30 @@ with st.sidebar:
         )
 
         st.session_state["cookies_enabled"] = st.toggle(
-            "Manter Sessão / Cookies",
-            value=st.session_state["cookies_enabled"]
+            get_text("cookies_label", "Keep Session / Cookies"),
+            value=st.session_state.get("cookies_enabled", False)
         )
+        persist_current_state()
 
         if st.session_state["cookies_enabled"]:
-            st.caption("Status: Cookies/Sessão Ativos")
+            st.caption(get_text("cookies_active", "Status: Cookies/Session Active"))
         else:
-            st.caption("Status: Sessão Anônima")
+            st.caption(get_text("cookies_inactive", "Status: Anonymous Session"))
 
-    t = LANG_TEXTS[selected_lang]
+    selected_lang = st.session_state.get("selected_lang", "EN")
+    base_texts = LANG_TEXTS.get(selected_lang, LANG_TEXTS["EN"])
+    t = {**LANG_TEXTS["EN"], **base_texts}
 
     st.markdown("---")
     model_ok = model is not None and scaler is not None
     if model_ok:
-        st.success(f"[STATUS] {t['status_ready']}")
+        st.success(f"{t['status_ready']}")
     else:
-        st.error(f"[STATUS] {t['status_offline']}")
+        st.error(f"{t['status_offline']}")
 
     st.markdown("---")
-    st.markdown(f"### {t['arch_overview']}")
-    st.markdown(t['arch_desc'])
+    st.markdown(f"### {get_text('arch_overview', 'Architecture Overview')}")
+    st.markdown(get_text('arch_desc', 'Powered by an unsupervised Isolation Forest algorithm trained on 1.3M real Kaggle transactions.'))
     st.markdown("---")
 
     hist_df = pd.DataFrame(st.session_state["history"])
@@ -673,6 +1021,7 @@ with st.sidebar:
         c2.metric(t['flagged'], frauds)
         if st.button(t['clear_telemetry'], use_container_width=True):
             st.session_state["history"] = []
+            persist_current_state()
             st.rerun()
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -718,7 +1067,7 @@ with tab1:
         c1, c2, c3 = st.columns(3)
 
         with c1:
-            st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>[PAYLOAD_DATA] {t['payload_details']}</h4>", unsafe_allow_html=True)
+            st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>{t['payload_details']}</h4>", unsafe_allow_html=True)
             amt = st.number_input(t['amt'], min_value=0.01, max_value=25_000.0, value=85.50, step=0.01, format="%.2f")
             hour = st.slider(t['hour'], 0, 23, 14)
             day_of_week = st.selectbox(
@@ -729,14 +1078,14 @@ with tab1:
             )
 
         with c2:
-            st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>[NODE_LOCATION] {t['node_coords']}</h4>", unsafe_allow_html=True)
+            st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>{t['node_coords']}</h4>", unsafe_allow_html=True)
             lat  = st.number_input(t['card_lat'],  value=40.71, format="%.4f")
             long = st.number_input(t['card_long'], value=-74.00, format="%.4f")
             age  = st.slider(t['age'], 18, 90, 35)
             city_pop = st.number_input(t['city_pop'], min_value=100, max_value=5_000_000, value=250_000, step=1000)
 
         with c3:
-            st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>[TARGET_MERCHANT] {t['merchant_target']}</h4>", unsafe_allow_html=True)
+            st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>{t['merchant_target']}</h4>", unsafe_allow_html=True)
             merch_lat  = st.number_input(t['merch_lat'],  value=40.73, format="%.4f")
             merch_long = st.number_input(t['merch_long'], value=-73.93, format="%.4f")
 
@@ -750,7 +1099,7 @@ with tab1:
             hour=hour, day_of_week=day_of_week, age=age, amt_log=amt_log,
         )
 
-        with st.spinner("Processing isolation tree path length…"):
+        with st.spinner(t.get('spinner_simulate', 'Processing isolation tree path length…')):
             time.sleep(0.15)
             label, raw_score, risk_pct = predict_transaction(values)
 
@@ -769,7 +1118,10 @@ with tab1:
 
         st.markdown("<br>", unsafe_allow_html=True)
         
-        sim_chart_tab1, sim_chart_tab2 = st.tabs(["[DIAGNOSTICS] Medidor & Diagnósticos", "[RADAR] Perfil Radar & Comparativo"])
+        sim_chart_tab1, sim_chart_tab2 = st.tabs([
+            f"[DIAGNOSTICS] {t.get('sim_tabs_diagnostics', 'Diagnostics')}",
+            t.get('sim_tabs_radar', 'Radar Profile')
+        ])
 
         with sim_chart_tab1:
             col_gauge, col_explain = st.columns([1, 1])
@@ -786,19 +1138,19 @@ with tab1:
                 st.markdown(explanation)
 
         with sim_chart_tab2:
-            st.markdown("#### [RADAR] Gráfico de Radar: Atributos da Transação vs Linha de Base Padrão")
+            st.markdown(f"#### {t.get('radar_title', 'Radar Chart: Transaction Attributes vs Standard Baseline')}")
             col_radar, col_bar = st.columns([1.2, 1])
             with col_radar:
-                st.plotly_chart(create_radar_chart(values), use_container_width=True)
+                st.plotly_chart(create_radar_chart(values, t), use_container_width=True)
             with col_bar:
-                features_names = ['Valor', 'Hora', 'Idade', 'Distância Geo', 'Densidade Pop']
+                features_names = t.get('radar_feature_labels', ['Value', 'Hour', 'Age', 'Geo Distance', 'Population Density'])
                 dist_geo = abs(values.get('lat', 0) - values.get('merch_lat', 0)) * 100
                 variances = [values.get('amt', 0), values.get('hour', 0)*10, values.get('age', 0), dist_geo, values.get('city_pop', 0)/5000]
                 
                 fig_var = px.bar(
                     x=features_names, y=variances,
-                    title="Variação de Atributos do Payload",
-                    labels={'x': 'Atributo', 'y': 'Magnitude'},
+                    title=t.get('payload_bar_title', 'Payload Attribute Variation'),
+                    labels={'x': t.get('payload_bar_x', 'Attribute'), 'y': t.get('payload_bar_y', 'Magnitude')},
                     color_discrete_sequence=[current_theme['accent_primary']],
                     template=current_theme['plotly_template']
                 )
@@ -821,10 +1173,11 @@ with tab1:
                 "risk_pct":  round(risk_pct, 1),
             }
         )
+        persist_current_state()
 
     if st.session_state["history"]:
         st.markdown("---")
-        st.markdown(f"### [LOG] {t['session_log']}")
+        st.markdown(f"### {t['session_log']}")
         hist_df = pd.DataFrame(st.session_state["history"])
         st.dataframe(hist_df, use_container_width=True, hide_index=True)
 
@@ -853,16 +1206,16 @@ with tab2:
     if uploaded_file is not None:
         try:
             df_batch = pd.read_csv(uploaded_file)
-            st.success(f"[PAYLOAD_OK] Loaded Payload: {len(df_batch):,} records successfully.")
+            st.success(t.get('status_payload_loaded', '[PAYLOAD_OK] Loaded payload: {n:,} records successfully.').format(n=len(df_batch)))
         except Exception as e:
-            st.error(f"[ERROR] Failed to read CSV: {e}")
+            st.error(t.get('status_csv_error', '[ERROR] Failed to read CSV: {error}').format(error=e))
 
     elif use_sample:
         df_batch = pd.read_csv(io.BytesIO(generate_sample_csv()))
-        st.info("[SAMPLE_ACTIVE] Using 30 synthetic transactions sample payload.")
+        st.info(t.get('status_sample_active', '[SAMPLE_ACTIVE] Using 30 synthetic transactions sample payload.'))
 
     if df_batch is not None:
-        with st.spinner("Processing isolation forest inference..."):
+        with st.spinner(t.get('spinner_batch', 'Processing isolation forest inference...')):
             result_df = batch_predict(df_batch)
 
         total_tx = len(result_df)
@@ -877,20 +1230,20 @@ with tab2:
         m4.metric(t['avg_risk'], f"{avg_risk:.1f}%")
 
         st.markdown("---")
-        st.markdown("### [ANALYTICS] Painel de Análise Gráfica Avançada")
+        st.markdown(f"### {t.get('analytics_title', 'Advanced Graph Analysis Panel')}")
 
         b_tab1, b_tab2, b_tab3, b_tab4 = st.tabs([
-            "[OVERVIEW] Distribuição Geral", 
-            "[TEMPORAL] Padrões Temporais", 
-            "[SCATTER] Relação Valor x Risco", 
-            "[DEMO] Geografia & Demografia"
+            f"[OVERVIEW] {t.get('overview_tab', 'Overall Distribution')}",
+            f"[TEMPORAL] {t.get('temporal_tab', 'Temporal Patterns')}",
+            f"[SCATTER] {t.get('scatter_tab', 'Value vs Risk Relationship')}",
+            f"[DEMO] {t.get('geography_tab', 'Geography & Demographics')}"
         ])
 
         with b_tab1:
             col_pie, col_hist = st.columns(2)
             with col_pie:
                 pie_data = result_df["prediction"].value_counts().reset_index()
-                pie_data.columns = ["Prediction", "Count"]
+                pie_data.columns = [t.get('chart_prediction_label', 'Prediction'), t.get('chart_count_label', 'Count')]
                 fig_pie = px.pie(
                     pie_data, names="Prediction", values="Count",
                     color="Prediction",
@@ -913,7 +1266,7 @@ with tab2:
                     nbins=25, barmode="overlay",
                     color_discrete_map={"FRAUD": current_theme['accent_red'], "SAFE": current_theme['accent_green']},
                     title=t['chart_hist_title'],
-                    labels={"risk_score": "Risk Percentage (%)", "count": "Frequency"},
+                    labels={"risk_score": t.get('chart_risk_label', 'Risk Percentage (%)'), "count": t.get('chart_frequency_label', 'Frequency')},
                     template=current_theme['plotly_template']
                 )
                 fig_hist.update_layout(
@@ -932,7 +1285,7 @@ with tab2:
                     fig_hour = px.bar(
                         hour_fraud, x="hour", y="count", color="prediction",
                         color_discrete_map={"FRAUD": current_theme['accent_red'], "SAFE": current_theme['accent_green']},
-                        title="Transações por Hora do Dia (0-23h)",
+                        title=t.get('hour_title', 'Transactions by Hour of Day (0-23h)'),
                         barmode="stack",
                         template=current_theme['plotly_template']
                     )
@@ -949,7 +1302,7 @@ with tab2:
                     fig_day = px.bar(
                         day_fraud, x="day_of_week", y="count", color="prediction",
                         color_discrete_map={"FRAUD": current_theme['accent_red'], "SAFE": current_theme['accent_green']},
-                        title="Transações por Dia da Semana (0=Seg, 6=Dom)",
+                        title=t.get('day_title', 'Transactions by Day of Week (0=Mon, 6=Sun)'),
                         barmode="group",
                         template=current_theme['plotly_template']
                     )
@@ -967,8 +1320,8 @@ with tab2:
                     result_df, x="amt", y="risk_score", color="prediction",
                     size="risk_score",
                     color_discrete_map={"FRAUD": current_theme['accent_red'], "SAFE": current_theme['accent_green']},
-                    title="Dispersão: Valor da Transação ($) vs Pontuação de Risco (%)",
-                    labels={"amt": "Valor ($)", "risk_score": "Risco (%)"},
+                    title=t.get('scatter_title', 'Scatter: Transaction Value ($) vs Risk Score (%)'),
+                    labels={"amt": t.get('chart_amount_label', 'Transaction Amount ($)'), "risk_score": t.get('chart_risk_label', 'Risk Percentage (%)')},
                     template=current_theme['plotly_template']
                 )
                 fig_scatter_batch.update_layout(
@@ -986,8 +1339,8 @@ with tab2:
                     fig_pop = px.box(
                         result_df, x="prediction", y="city_pop", color="prediction",
                         color_discrete_map={"FRAUD": current_theme['accent_red'], "SAFE": current_theme['accent_green']},
-                        title="Distribuição de População da Cidade por Status",
-                        labels={"city_pop": "População"},
+                        title=t.get('pop_title', 'City Population Distribution by Status'),
+                        labels={"city_pop": t.get('chart_population_label', 'Population')},
                         template=current_theme['plotly_template']
                     )
                     fig_pop.update_layout(
@@ -1002,8 +1355,8 @@ with tab2:
                     fig_age = px.histogram(
                         result_df, x="age", color="prediction", barmode="overlay",
                         color_discrete_map={"FRAUD": current_theme['accent_red'], "SAFE": current_theme['accent_green']},
-                        title="Distribuição por Faixa Etária do Titular",
-                        labels={"age": "Idade"},
+                        title=t.get('age_title', 'Distribution by Cardholder Age Range'),
+                        labels={"age": t.get('chart_age_label', 'Age')},
                         template=current_theme['plotly_template']
                     )
                     fig_age.update_layout(
@@ -1015,7 +1368,7 @@ with tab2:
                     st.plotly_chart(fig_age, use_container_width=True)
 
         st.markdown("---")
-        st.markdown(f"### [DATA_GRID] {t['grid_title']}")
+        st.markdown(f"### {t['grid_title']}")
 
         def highlight_fraud(val):
             if val == "FRAUD":
@@ -1050,21 +1403,35 @@ with tab2:
 # TAB 3 — MODEL INSIGHTS
 # ═════════════════════════════════════════════════════════════════════════════
 with tab3:
-    st.markdown("### [MODEL_SPEC] Neural Engine Parameters & Architecture")
+    st.markdown(f"### {t.get('model_spec_title', 'Model Parameters & Engine Architecture')}")
 
     col_params, col_info = st.columns([1, 2])
     with col_params:
-        st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>[PARAMS] {t['model_params']}</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>{t['model_params']}</h4>", unsafe_allow_html=True)
         params = model.get_params()
         param_df = pd.DataFrame(list(params.items()), columns=["Hyperparameter", "Value"])
-        st.dataframe(param_df, use_container_width=True, hide_index=True)
+
+        def normalize_param_value(value):
+            if value is None:
+                return ""
+            if hasattr(value, "item") and not isinstance(value, (str, bytes, dict, list, tuple, set)):
+                try:
+                    value = value.item()
+                except Exception:
+                    pass
+            if isinstance(value, (str, int, float, bool)):
+                return value
+            return str(value)
+
+        param_df["Value"] = param_df["Value"].apply(normalize_param_value)
+        st.dataframe(param_df.astype({"Hyperparameter": "string", "Value": "string"}), use_container_width=True, hide_index=True)
 
     with col_info:
-        st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>[THEORY] {t['theory_title']}</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='color:{current_theme['accent_primary']}; font-family:Orbitron;'>{t['theory_title']}</h4>", unsafe_allow_html=True)
         st.markdown(t['theory_desc'])
 
     st.markdown("---")
-    st.markdown("### [SIMULATOR] Monte Carlo Visualizer")
+    st.markdown(f"### {t.get('monte_carlo_title', 'Monte Carlo Visualizer')}")
     if st.button(t['btn_monte_carlo'], use_container_width=False):
         rng = np.random.default_rng()
         n   = 50
@@ -1090,8 +1457,8 @@ with tab3:
             color_discrete_map={"FRAUD": current_theme['accent_red'], "SAFE": current_theme['accent_green']},
             size="risk_score",
             hover_data=["hour", "age", "city_pop"],
-            title="Amount vs Risk Score Distribution",
-            labels={"amt": "Transaction Amount ($)", "risk_score": "Risk Percentage (%)"},
+            title=t.get('monte_carlo_scatter_title', 'Amount vs Risk Score Distribution'),
+            labels={"amt": t.get('chart_amount_label', 'Transaction Amount ($)'), "risk_score": t.get('chart_risk_label', 'Risk Percentage (%)')},
             template=current_theme['plotly_template']
         )
         fig_scatter.update_layout(
@@ -1106,20 +1473,20 @@ with tab3:
 # TAB 4 — ABOUT / ARCHITECTURE
 # ═════════════════════════════════════════════════════════════════════════════
 with tab4:
-    st.markdown(f"### [SPEC] {t['arch_overview']}")
+    st.markdown(f"### {get_text('arch_overview', 'Architecture Overview')}")
     st.markdown(
-        """
-## Neural Fraud Sentinel Enterprise
+        f"""
+## {get_text('about_title', 'FraudSentinel Enterprise')}
 
-End-to-end Machine Learning pipeline for real-time credit card fraud detection.
+{get_text('about_intro', 'Cutting-edge machine learning pipeline for real-time credit card fraud detection.')}
 
 ---
 
-### Core Technology Stack
+### {get_text('about_stack_title', 'Core Technology Stack')}
 
-- **ML Core**: `scikit-learn` Isolation Forest (Unsupervised Anomaly Detection)
-- **Data Engineering**: `pandas`, `numpy`, `StandardScaler`
-- **Dashboard**: `Streamlit`, `Plotly Express` (Dynamic Theme Engine)
-- **Dataset**: Kaggle Credit Card Fraud Detection dataset (**1,296,675 records**)
+- **{get_text('about_ml_core', 'ML Core')}**: `scikit-learn` Isolation Forest (Unsupervised Anomaly Detection)
+- **{get_text('about_data_eng', 'Data Engineering')}**: `pandas`, `numpy`, `StandardScaler`
+- **{get_text('about_dashboard', 'Dashboard')}**: `Streamlit`, `Plotly Express` (Dynamic Theme Engine)
+- **{get_text('about_dataset', 'Dataset')}**: Kaggle Credit Card Fraud Detection dataset (**1,296,675 records**)
         """
     )

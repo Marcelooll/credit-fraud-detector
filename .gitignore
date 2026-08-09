@@ -32,5 +32,9 @@ build/
 dist/
 *.egg-info/
 
+# Streamlit / local app state
+state_storage.json
+.streamlit/
+
 # Jupyter
 .ipynb_checkpoints/

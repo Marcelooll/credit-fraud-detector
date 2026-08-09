@@ -4,6 +4,10 @@ FraudSentinel é um projeto completo de machine learning para detecção de anom
 
 Este projeto foi pensado para funcionar tanto como um excelente portfólio quanto como um exemplo prático de como construir um sistema de detecção de anomalias de forma explicável e aplicável.
 
+A versão 1.0 inclui uma interface multilíngue no Streamlit, simulação de transações em tempo real, análise em lote via CSV, diagnósticos explicativos e controles de persistência de sessão.
+
+Se você encontrar bugs, tiver sugestões ou quiser solicitar alterações, por favor abra uma issue ou entre em contato com o mantenedor.
+
 ---
 
 ## 1. Visão geral do projeto
