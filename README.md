@@ -306,19 +306,7 @@ This makes the project especially attractive for a portfolio because it demonstr
 
 ---
 
-## 13. Suggested Interview Talking Points
-
-If you want to use this project in interviews or on your resume, these are strong points to highlight:
-
-- built a complete machine learning pipeline from data to UI;
-- implemented an unsupervised anomaly detection solution;
-- worked with real-world transaction data and feature engineering;
-- deployed a data science application with Streamlit;
-- created a user-facing experience with explainability and visualization.
-
----
-
-## 14. Future Improvements
+## 13. Future Improvements
 
 Possible next steps for the project include:
 
@@ -331,7 +319,7 @@ Possible next steps for the project include:
 
 ---
 
-## 15. License
+## 14. License
 
 This project is available for educational and personal use.
 
