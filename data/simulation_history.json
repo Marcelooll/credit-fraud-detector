@@ -1,0 +1,72 @@
+[
+  {
+    "req_time": "18/08/2026 19:20:09 (UTC-03:00)",
+    "sim_window": "23:00:00 — Dom",
+    "amt": "$25000.00",
+    "age": 86,
+    "verdict": "FRAUD",
+    "risk_pct": "66.8%",
+    "raw_score": "-0.1006",
+    "city_pop": 100
+  },
+  {
+    "req_time": "18/08/2026 19:20:03 (UTC-03:00)",
+    "sim_window": "23:00:00 — Ter",
+    "amt": "$25000.00",
+    "age": 86,
+    "verdict": "FRAUD",
+    "risk_pct": "65.3%",
+    "raw_score": "-0.0918",
+    "city_pop": 100
+  },
+  {
+    "req_time": "18/08/2026 19:19:56 (UTC-03:00)",
+    "sim_window": "23:00:00 — Ter",
+    "amt": "$25000.00",
+    "age": 35,
+    "verdict": "FRAUD",
+    "risk_pct": "64.5%",
+    "raw_score": "-0.0872",
+    "city_pop": 250000
+  },
+  {
+    "req_time": "18/08/2026 19:19:52 (UTC-03:00)",
+    "sim_window": "23:00:00 — Ter",
+    "amt": "$25000.00",
+    "age": 35,
+    "verdict": "FRAUD",
+    "risk_pct": "59.4%",
+    "raw_score": "-0.0563",
+    "city_pop": 250000
+  },
+  {
+    "req_time": "18/08/2026 19:19:44 (UTC-03:00)",
+    "sim_window": "23:00:00 — Ter",
+    "amt": "$25000.00",
+    "age": 35,
+    "verdict": "FRAUD",
+    "risk_pct": "54.7%",
+    "raw_score": "-0.0281",
+    "city_pop": 250000
+  },
+  {
+    "req_time": "18/08/2026 19:19:37 (UTC-03:00)",
+    "sim_window": "23:00:00 — Ter",
+    "amt": "$25000.00",
+    "age": 35,
+    "verdict": "FRAUD",
+    "risk_pct": "52.8%",
+    "raw_score": "-0.0170",
+    "city_pop": 250000
+  },
+  {
+    "req_time": "18/08/2026 18:36:19 (UTC-03:00)",
+    "sim_window": "14:00:00 — Ter",
+    "amt": "$85.50",
+    "age": 35,
+    "verdict": "SAFE",
+    "risk_pct": "22.9%",
+    "raw_score": "0.1626",
+    "city_pop": 250000
+  }
+]
