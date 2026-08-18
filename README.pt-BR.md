@@ -92,7 +92,7 @@ Treinado e avaliado sobre o corpus do **Kaggle Credit Card Fraud Detection** ($1
 
 ## Guia Prático de Testes (Como Testar Cada Funcionalidade)
 
-Para validar a capacidade de inferência e a precisão dos diagnósticos na interface ([http://localhost:8501](http://localhost:8501)):
+Para validar a capacidade de inferência e a precisão dos diagnósticos na interface:
 
 ### Caso de Teste 1: Transação Nominal / Legítima (Safe Baseline)
 * **Objetivo**: Verificar que compras de rotina são classificadas como seguras com baixo risco.
@@ -238,7 +238,7 @@ python train.py
 streamlit run app.py
 ```
 
-Acesse a interface no navegador através do endereço `http://localhost:8501`.
+Acesse a interface no navegador através do localhost.
 
 ---
 
