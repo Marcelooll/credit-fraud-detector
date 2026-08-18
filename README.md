@@ -238,7 +238,7 @@ python train.py
 streamlit run app.py
 ```
 
-Access the dashboard at `http://localhost:8501`.
+Access the dashboard at your local host, or deploy it if you wish so.
 
 ---
 
