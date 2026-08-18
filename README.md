@@ -24,8 +24,6 @@ This project is ready to be deployed on Streamlit Cloud with the standard struct
 
 Use this deployment URL after publishing the repository:
 
-https://share.streamlit.io/Marcelooll/credit-fraud-detector/main/app.py
-
 ## 2. Project Overview
 
 FraudSentinel uses an Isolation Forest model to detect suspicious transactions without requiring labeled fraud examples during training. The system is trained on a real-world credit card fraud dataset and exposes its results through a web app that supports:
