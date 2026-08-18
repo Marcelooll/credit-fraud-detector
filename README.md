@@ -92,7 +92,7 @@ Trained and evaluated on the **Kaggle Credit Card Fraud Detection Corpus** ($1,2
 
 ## Hands-On Testing Playbook (How to Test Each Feature)
 
-To validate the model's inference performance and diagnostic explanations in the web UI ([http://localhost:8501](http://localhost:8501)):
+To validate the model's inference performance and diagnostic explanations in the web UI:
 
 ### Test Case 1: Nominal / Legitimate Transaction (Safe Baseline)
 * **Objective**: Confirm that routine daily spending is correctly evaluated as nominal safe behavior.
